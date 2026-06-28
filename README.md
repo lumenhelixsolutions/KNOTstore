@@ -1,13 +1,6 @@
 <div align="center">
 
-```
-╔═══════════════════════════════════════╗
-║  ▄█▄  ▄█▄  ▄█▄  KNOTstore · LENS-64S ║
-║  ╚█╝  ╚█╝  ╚█╝  v0.1.5               ║
-╚═══════════════════════════════════════╝
-```
-
-**Knot-Addressed Structural Hashing and Tiny-Pointer Storage**
+<img src="assets/header.svg" alt="KNOTstore · LENS-64S — Knot-Addressed Structural Hashing and Tiny-Pointer Storage" width="100%">
 
 [![tests](https://img.shields.io/badge/tests-36%20pass-2440E6?style=flat-square&logo=pytest&logoColor=white)](knotstore/test_knotstore.py)
 [![pointer](https://img.shields.io/badge/pointer%20size-1%20byte-11131A?style=flat-square)](knotstore/codec.py)
