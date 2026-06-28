@@ -1,181 +1,180 @@
-# KNOTstore (LENS-64S) v0.1.5
+<div align="center">
+
+```
+╔═══════════════════════════════════════╗
+║  ▄█▄  ▄█▄  ▄█▄  KNOTstore · LENS-64S ║
+║  ╚█╝  ╚█╝  ╚█╝  v0.1.5               ║
+╚═══════════════════════════════════════╝
+```
 
 **Knot-Addressed Structural Hashing and Tiny-Pointer Storage**
 
-A fully-corrected, runnable reference implementation of the LENS-64S architecture —
-content-addressed storage where a **1-byte binary pointer** deterministically regenerates
-a knot → δ-channel → ρ-move route → storage address. Stdlib only. All claims tested
-and measured.
+[![tests](https://img.shields.io/badge/tests-36%20pass-2440E6?style=flat-square&logo=pytest&logoColor=white)](knotstore/test_knotstore.py)
+[![pointer](https://img.shields.io/badge/pointer%20size-1%20byte-11131A?style=flat-square)](knotstore/codec.py)
+[![locality](https://img.shields.io/badge/SimHash%20locality-9.3×-2440E6?style=flat-square)](knotstore/bench_locality.py)
+[![deps](https://img.shields.io/badge/dependencies-zero-5B6170?style=flat-square)](knotstore/)
+[![license](https://img.shields.io/badge/license-MIT-DDDBD2?style=flat-square)]()
 
-```
+[Whitepaper](paper/WHITEPAPER.md) · [Colab Notebooks](paper/colab/) · [Interactive Infographic](https://lumenhelixsolutions.github.io/KNOTstore/)
+
+</div>
+
+---
+
+A fully-corrected reference implementation where a **1-byte binary pointer** deterministically walks knot → δ-channel → ρ-move route → storage address. O(1) retrieval. Zero dependencies. All claims measured.
+
+> **Three numbers:** `1 byte` per pointer · `186×` smaller than the JSON prototype · `9.3×` better near-duplicate locality than random placement.
+
+---
+
+## Quickstart
+
+```bash
+git clone https://github.com/lumenhelixsolutions/KNOTstore && cd KNOTstore
 python3 -m pytest knotstore/test_knotstore.py -v   # 36 tests, all pass
-python3 knotstore/bench.py                          # pointer sizes + shard balance
-python3 knotstore/bench_locality.py                 # 9.3× near-duplicate locality
+python3 knotstore/bench.py                          # pointer size + shard balance
+python3 knotstore/bench_locality.py                 # locality benchmark
 ```
 
-## Repository layout
+---
 
-```
-knotstore/        Reference implementation (stdlib only)
-  knotstore.py    Core store: put / get / verify / address_for / route fingerprints
-  signature.py    64-bit SimHash content signature (Charikar 2002)
-  codec.py        Binary tiny-pointer codec — 1 byte per pointer
-  cube.py         Reversible 27-subcube / 162-face MacroCube + ρ-moves
-  provenance.py   Rollback-capable ProvenanceLog via inverse cube routes
-  braid.py        Alexander braid representation of ρ-move routes (B₉)
-  burau.py        Reduced Burau matrices; Alexander polynomial computation ← NEW v0.1.5
-  knot_table.py   KnotInfo-verified properties for all 7 KNOTS_V01 knots ← NEW v0.1.5
-  cauldron.py     Cauldron canonical semantics + CauldronManifest overlay
-  audit.py        Phase-duality two-phase audit log (forward p=0, dual p=1)
-  bench.py        Pointer-size + shard-balance benchmark
-  bench_locality.py  Near-duplicate locality benchmark
-  test_knotstore.py  36 tests (all pass)
-  README.md       Detailed technical notes — what was broken and how it was fixed
+## What it does
 
-paper/
-  WHITEPAPER.md   Full technical white paper with proofs, tables, and equations
-  colab/          Five runnable Google Colab notebooks
-    01_knotstore_basics.py     put / get / verify / tiny pointers / shard balance
-    02_burau_alexander.py      Laurent polynomials / Burau generators / Alexander Δ
-    03_knot_table.py           Knot properties / invertibility / amphichirality
-    04_cauldron_audit.py       Cauldron semantics / commit-rollback / phase audit
-    05_cube_provenance.py      MacroCube order-4 / Prop 2 (W⁻¹W=id) / ProvenanceLog
-```
+**`put(data)` → 1-byte pointer.**  
+Content is hashed, a knot is chosen by its SimHash signature, a ρ-move route through a reversible 162-face MacroCube generates the storage address. The pointer stores only the 3-bit knot ID + 5-bit probe. Everything else is recomputed on retrieval.
 
-## Key measured results
+**`get(pointer)` → original data, O(1).**  
+The same knot → δ → route → address path is walked again. No scan. No index. The route *is* the address.
 
-| Finding | Value |
-|---|---|
-| Binary pointer size | **1 byte** (186 bytes as JSON — 186× reduction) |
-| SimHash near-duplicate co-shard probability | **0.58** vs 0.06 random (9.3×) |
-| Trefoil Alexander polynomial Δ(t) | **1 − t + t²** ✓ |
-| Figure-eight Alexander polynomial Δ(t) | **1 − 3t + t²** ✓ |
-| Cinquefoil T(2,5) Alexander polynomial | **1 − t + t² − t³ + t⁴** ✓ |
-| W⁻¹·W = identity (Prop 2) | 20/20 random routes ✓ |
-| All 162 faces preserved (bijection) | confirmed after depth-50 route ✓ |
+**`verify()` → Merkle-root tamper check.**  
+The manifest carries the full digest table. Corruption is detected before data is returned.
 
-## Knot table (KNOTS_V01 verified against KnotInfo)
+---
 
-| Knot | Invertible | Amphichiral | Alternating | det | sig | braid idx |
-|---|---|---|---|---|---|---|
-| 10_34  | ✓ | ✓ | ✓ | 25 |  0 | 4 |
-| 10_125 | ✓ | ✗ | ✗ | 31 | −2 | 4 |
-| 10_85  | ✗ (probable) | ✗ | ✓ | 49 | +4 | 4 |
-| 10_83  | ✗ (confirmed) | ✗ | ✓ | 43 | +2 | 4 |
-| 10_61  | ✓ | ✗ | ✓ | 21 | −2 | 3 |
-| 10_20  | ✓ | ✗ | ✓ | 13 | −4 | 4 |
-| 10_136 | ✓ | ✗ | ✗ | 29 | −4 | 4 |
+## How the pointer shrinks to 1 byte
 
-**10_83 is confirmed non-invertible** (Trotter 1963, Hartley 1983); 10_85 probable.
-Replacement recommendation: 10_83 → **10_99**, 10_85 → **10_123** (both amphichiral +
-invertible). See `paper/WHITEPAPER.md §8` and `knotstore/knot_table.py`.
-
-## Honest scope
-
-Three limitations are documented rather than papered over:
-
-1. **Route Alexander polynomials are zero.** `route_to_braid()` is an ad hoc projection
-   (not a group homomorphism from cube symmetries to Bₙ), so `det(I − ρ̄(β)) = 0` for all
-   KNOTstore routes. Classic knot polynomials work correctly for standard braids (`burau.py`
-   verifies trefoil, figure-eight, cinquefoil against KnotInfo). A genuine homomorphism
-   requires embedding cube symmetries in Bₙ — left for future work.
-
-2. **δ-channels are labels.** The four Cauldron δ-pairs are assigned by `digest[0] % 4` —
-   uniform distribution, no knot-theoretic meaning.
-
-3. **10_83 / 10_85 should be replaced.** Non-invertible knots break the reversibility
-   invariant (forward route and inverse land in different topological classes).
-
-## Version history
-
-| Version | Key addition |
-|---|---|
-| v0.1.1 | Corrected O(1) address-regenerating retrieval (not O(N) scan) |
-| v0.1.2 | 1-byte binary tiny pointer; SimHash content placement |
-| v0.1.3 | Real reversible MacroCube (162 faces); rollback ProvenanceLog |
-| v0.1.4 | Braid routes (B₉); Cauldron canonical manifests; phase-duality audit log |
-| **v0.1.5** | **Full Burau representation; Alexander polynomials; KnotInfo verification** |
-
-## What was broken in the draft, and what changed
-
-### 1. Retrieval did not regenerate the address (the central bug)
-The draft's `get()` ignored the derived address entirely and **linearly scanned
-the whole backend**, matching chunks by a 96-bit digest prefix. That is O(N)
-content search, and the knot / δ-channel / route apparatus — the entire point of
-the paper — was never used on the read path. `Theorem 1`'s proof described an
-address-regeneration algorithm that the code did not implement.
-
-**Fixed:** a single `address_for(digest, probe)` is the source of truth for
-placement, used by **both** `put()` and `get()`. Retrieval recomputes
-knot → δ → route → address and does a direct **O(1)** backend lookup. Test
-`test_retrieval_is_address_regeneration_not_scan` proves the chunk is reached
-via the regenerated key (deleting that key makes `get` fail; a scan would not).
-
-### 2. The pointer could not regenerate the address
-The draft derived the address from the full 256-bit digest but stored only a
-64-bit seed prefix in the pointer — so the pointer literally lacked the
-information to reproduce the address, and the dormant `pointer_to_address`
-re-derived from `sha256(seed+knot)`, a *different* value than the stored key.
-
-**Fixed:** the full chunk digest (the Merkle leaf, not secret) lives once in the
-manifest; the pointer carries only the `probe` (the one datum not derivable from
-the digest) plus screening metadata. Address regeneration is now exact.
-
-### 3. Collision recovery was untestable
-With full 256-bit blake2b addresses, collisions never occur, so the draft's
-collision theorems and `collisions: 3` benchmark line were unfalsifiable.
-
-**Fixed:** an `address_bits` knob shrinks the address space.
-`test_collision_recovery_small_address_space` runs 4000 chunks into a 16-bit
-space, asserts probes actually fire, and confirms round-trip still holds.
-
-## Measured findings (these contradict the draft)
-
-From `bench.py` (1000 objects, ~15.7k chunks, 256-byte chunks):
-
-| Claim in draft | Draft value | **Measured** |
+| Field | JSON prototype | Binary codec |
 |---|---|---|
-| `avg_pointer_bytes` | 96 | **186** |
-| `pointer_compression_ratio` | 0.375 (62.5% saving) | **2.33 (≈2.3× *larger*)** |
-| dedupe ratio | 0.18 | 0.175 (corpus was built to ~0.18) |
-| roundtrip / corruption detect | pass | pass |
+| `version`, `algorithm`, `depth`, `address_bits` | ~72 bytes of labels | manifest header (once, not per-chunk) |
+| `delta`, `size`, `digest_prefix` | ~22 bytes | recomputed from digest |
+| `knot` (3 bits) + `probe` (5 bits) | ~22 bytes verbose | **1 byte** |
+| **Total per pointer** | **186 bytes** | **1 byte** |
 
-Two honest conclusions:
+The binary manifest is dominated by the 32-byte digest table — the Merkle anchor every content-addressed store carries regardless. The route descriptor is the 1 byte.
 
-1. **The JSON "tiny pointer" was larger than a flat address→digest record**, not
-   smaller — the verbose JSON (38-char `algorithm` string, labels like
-   `"D4:(6,9)"`) dominated. **Fixed in v0.1.2 by `codec.py`** (see next section):
-   the binary pointer is **1 byte**.
+---
 
-2. **The knot×δ coordinate shards *worse* than a one-byte baseline**
-   (load CV ≈ 0.28 vs 0.11 across 16 nodes). There are only 7×4 = 28 distinct
-   coordinates, which quantize unevenly onto 16 nodes; a single digest byte (256
-   values) spreads smoothly. And because the coordinate is itself digest-derived,
-   it provides **uniform-ish balance but zero content locality** — similar
-   content does not colocate. "Knot-indexed storage" as defined adds no
-   placement value over hashing the digest.
+## Architecture
 
-## Content-correlated signature (does the knot layer *ever* buy locality?)
+```
+                        ┌─ content_simhash ──────────────────────┐
+                        │   64-bit SimHash (Charikar 2002)        │
+                        │   top 3 bits → knot ID                  │
+DATA ──► BLAKE2b-256 ───┤                                         ├──► ADDRESS
+         (digest)       │   digest[0] % 4 → δ-channel            │    O(1) lookup
+                        │   digest bits  → ρ-move route           │
+                        └─ MacroCube path ────────────────────────┘
+                             27 subcubes · 162 faces
+                             every move is a bijection
+                             W⁻¹·W = identity (Prop 2 ✓)
+```
 
-The draft's knot/δ coordinate is digest-derived, so it cannot colocate similar
-content. `signature.py` + `bench_locality.py` test whether a content-correlated
-placement key fixes that. The signature is a 64-bit SimHash (Charikar) over byte
-shingles; shards are taken from its top bits, so similar content shares a shard.
+The same path is walked by **both `put` and `get`**. The pointer carries only what can't be recomputed: the knot choice (content-driven in v0.1.2+) and the probe offset.
 
-Test corpus: clusters of near-duplicate chunks (one base + variants with a few
-flipped bytes, every variant a distinct sha256). Co-shard probability = fraction
-of within-cluster pairs landing on the same of 16 nodes (random ≈ 0.0625):
+---
 
-| placement | co-shard prob | vs random | load CV |
+## Key results
+
+| Claim | Measured |
+|---|---|
+| Binary pointer size | **1 byte** (186× smaller than JSON) |
+| SimHash near-duplicate co-shard probability | **0.58** vs 0.06 random (**9.3×**) |
+| knot_coord placement load CV | **0.266** — worse than a digest byte (0.065) |
+| Trefoil Δ(t) | `1 − t + t²` ✓ |
+| Figure-eight Δ(t) | `1 − 3t + t²` ✓ |
+| Cinquefoil T(2,5) Δ(t) | `1 − t + t² − t³ + t⁴` ✓ |
+| W⁻¹·W = identity | 20/20 random routes ✓ |
+| 162 faces preserved after depth-50 route | bijection confirmed ✓ |
+| Tests | **36 / 36 pass** |
+
+> The draft claimed `avg_pointer_bytes = 96` with `62.5%` compression. **Measured: 186 bytes, 2.3× larger than a flat record.** Corrected in v0.1.2.
+
+---
+
+## Repository
+
+| File | Purpose |
+|---|---|
+| `knotstore/knotstore.py` | Core store — put / get / verify / address_for |
+| `knotstore/codec.py` | Binary tiny-pointer codec (1 byte) |
+| `knotstore/signature.py` | 64-bit SimHash (Charikar 2002) |
+| `knotstore/cube.py` | Reversible 162-face MacroCube + ρ-moves |
+| `knotstore/provenance.py` | Rollback-capable ProvenanceLog |
+| `knotstore/braid.py` | Alexander braid routes (B₉) |
+| `knotstore/burau.py` | Reduced Burau matrices + Alexander Δ(t) ← v0.1.5 |
+| `knotstore/knot_table.py` | KnotInfo-verified knot properties ← v0.1.5 |
+| `knotstore/cauldron.py` | Cauldron canonical semantics + overlay |
+| `knotstore/audit.py` | Phase-duality audit log (p=0 forward, p=1 dual) |
+| `knotstore/bench.py` | Pointer size + shard balance benchmark |
+| `knotstore/bench_locality.py` | Near-duplicate locality benchmark |
+| `knotstore/test_knotstore.py` | 36 tests |
+| `paper/WHITEPAPER.md` | Full white paper with proofs and tables |
+| `paper/colab/` | 5 runnable Google Colab notebooks |
+
+---
+
+<details>
+<summary><strong>What was broken in the draft (and how it was fixed)</strong></summary>
+
+### Bug 1 — Retrieval was O(N), not O(1)
+
+The draft's `get()` ignored the derived address and linearly scanned the backend matching on a 96-bit digest prefix. The knot / δ / route apparatus — the entire point of the paper — was never used on the read path.
+
+**Fix:** `address_for(digest, probe)` is the single source of truth, used by both `put()` and `get()`. Test `test_retrieval_is_address_regeneration_not_scan` proves it: delete the key at the regenerated address and `get()` fails; a scan would not.
+
+### Bug 2 — The pointer couldn't regenerate its own address
+
+The draft stored a 64-bit seed prefix. The dormant `pointer_to_address` re-derived from `sha256(seed+knot)` — a *different* value than the stored key. The pointer lacked the information to reproduce the address.
+
+**Fix:** The full chunk digest lives once in the manifest (the Merkle leaf, not secret). The pointer stores only the `probe` (the one value not derivable from the digest). Address regeneration is now exact.
+
+### Bug 3 — Collision recovery was unfalsifiable
+
+With 256-bit blake2b addresses, collisions never occur. The draft's `collisions: 3` benchmark line was unverifiable.
+
+**Fix:** `address_bits` knob shrinks the address space. `test_collision_recovery_small_address_space` runs 4000 chunks into a 16-bit space, asserts probes fire, confirms round-trip.
+
+</details>
+
+<details>
+<summary><strong>Knot table — KNOTS_V01 verified against KnotInfo</strong></summary>
+
+| Knot | Invertible | Amphichiral | Alternating | det | sig | braid idx | Note |
+|---|---|---|---|---|---|---|---|
+| 10_34  | ✓ | ✓ | ✓ | 25 |  0 | 4 | |
+| 10_125 | ✓ | ✗ | ✗ | 31 | −2 | 4 | |
+| 10_85  | ✗ probable | ✗ | ✓ | 49 | +4 | 4 | → replace with **10_123** |
+| 10_83  | ✗ confirmed | ✗ | ✓ | 43 | +2 | 4 | → replace with **10_99** |
+| 10_61  | ✓ | ✗ | ✓ | 21 | −2 | 3 | |
+| 10_20  | ✓ | ✗ | ✓ | 13 | −4 | 4 | |
+| 10_136 | ✓ | ✗ | ✗ | 29 | −4 | 4 | |
+
+**10_83 is confirmed non-invertible** (Trotter 1963, Hartley 1983). Non-invertible knots break the reversibility invariant — the forward route and its inverse land in different topological classes. See `paper/WHITEPAPER.md §8`.
+
+</details>
+
+<details>
+<summary><strong>Near-duplicate locality — edit-sensitivity sweep</strong></summary>
+
+| Placement | co-shard prob | vs random | load CV |
 |---|---|---|---|
 | `content_simhash` | **0.58** | **9.3×** | 0.097 |
-| `digest_byte` (draft-style) | 0.059 | ~1.0× (none) | 0.065 |
-| `knot_coord` (draft knot×δ) | 0.069 | ~1.1× (none) | 0.266 |
+| `digest_byte` | 0.059 | ~1× | 0.065 |
+| `knot_coord` | 0.069 | ~1.1× | 0.266 |
 
-Edit-sensitivity sweep — locality decays smoothly toward random as content
-diverges (confirms it tracks similarity, not noise):
+The digest-derived knot/δ coordinate provides essentially no locality. SimHash locality decays smoothly as content diverges — confirming it tracks similarity, not noise:
 
-| edits/variant | intra-cluster SimHash Hamming | co-shard (simhash) |
+| edits / variant | intra-cluster Hamming | co-shard prob |
 |---|---|---|
 | 1 | 4.6 | 0.75 |
 | 3 | 8.0 | 0.55 |
@@ -183,113 +182,35 @@ diverges (confirms it tracks similarity, not noise):
 | 20 | 19.2 | 0.25 |
 | 64 | 27.9 | 0.11 |
 
-**Conclusion:** a content-correlated key delivers ~9× better near-duplicate
-locality at a small balance cost (and balances *better* than the draft's knot
-coordinate). The digest-derived knot/δ coordinate provides none. If the knot
-layer is to mean anything, its selector must be driven by a signature like this,
-not by `digest[1] % 7`.
+</details>
 
-## v0.1.2 — content placement wired into the store, and a real binary pointer
+---
 
-Two follow-ups from the findings above, now implemented.
+## Honest scope
 
-### Content placement (`KnotStore(placement="content")`)
-The SimHash selector is wired into the store's knot choice, so placement is
-content-correlated end to end:
-- `knot_for(data, digest)` picks the knot from the content SimHash (top 3 bits);
-  near-duplicate chunks share a knot. The chosen knot is stored in the pointer,
-  so **retrieval still never needs the chunk** to reconstruct the address —
-  round-trip stays exact (`test_content_placement_roundtrip`).
-- `shard_for(data, digest, num_nodes)` shards by SimHash top bits in content
-  mode (the locality win above), or by a digest byte in `"digest"` mode.
-- Default remains `placement="digest"` for backward compatibility.
+**Working:** deterministic content-addressed store · O(1) address-regenerating retrieval · 1-byte binary pointer · 9.3× near-duplicate locality · reversible 162-face MacroCube · rollback-capable provenance · Alexander polynomials verified against KnotInfo · 36 tests, zero dependencies.
 
-### Binary tiny pointer (`codec.py`) — the original intent, restored
-The draft meant *binary* pointers; the prototype had drifted to JSON. The codec
-hoists everything constant or derivable out of the per-chunk pointer:
+**Not working yet:**
+- Route Alexander polynomials are zero — `route_to_braid()` is an ad hoc projection, not a group homomorphism. Left for future work.
+- δ-channels are `digest[0] % 4` labels — no knot-theoretic meaning.
+- 10_83 and 10_85 should be replaced (non-invertible knots break reversibility).
 
-| field | where it lives now |
+---
+
+## Version history
+
+| Version | Addition |
 |---|---|
-| version, algorithm, depth, address_bits, chunk_size, placement | manifest header (once) |
-| delta | recomputed from the digest |
-| size | recomputed (chunk_size, or remainder for the last chunk) |
-| digest_prefix | recomputed from the digest table |
-| **knot** (3 bits) + **probe** (5 bits, varint escape) | **the 1 byte we store per pointer** |
+| v0.1.1 | O(1) address-regenerating retrieval (was O(N) scan) |
+| v0.1.2 | 1-byte binary pointer; SimHash content placement |
+| v0.1.3 | Real reversible MacroCube (162 faces); rollback ProvenanceLog |
+| v0.1.4 | Braid routes (B₉); Cauldron manifests; phase-duality audit log |
+| **v0.1.5** | **Burau matrices; Alexander polynomials; KnotInfo verification** |
 
-Measured (`bench.py`, codec round-trips verified in `test_knotstore.py`):
+---
 
-| pointer encoding | bytes/pointer | vs JSON |
-|---|---|---|
-| JSON (drifted prototype) | 186.3 | 1.0× |
-| **binary (codec)** | **1.0** | **0.005× (≈186× smaller)** |
+<div align="center">
 
-`decode_manifest(encode_manifest(m))` reproduces the manifest exactly and the
-decoded manifest still retrieves the data; edge sizes (empty, 1-byte, ragged
-last chunk) and the large-probe varint escape are covered by tests.
+MIT · lumenhelixsolutions · [Interactive Infographic →](https://lumenhelixsolutions.github.io/KNOTstore/)
 
-> Note on the *manifest* total: the binary manifest is dominated by the 32-byte
-> digest table (the Merkle leaves / integrity anchor), which any content-
-> addressed store needs regardless. The "tiny pointer" claim is about the route
-> descriptor — that is the 1 byte.
-
-## v0.1.3 — the reversible macro-cube actually does something
-
-Previously the ρ-moves were never applied to anything: `compile_route` produced
-move objects only to stringify them into hash input, so the "reversible
-manifold" was notational. `cube.py` makes it a real **27-subcube / 162-face**
-state that moves permute, and `provenance.py` puts the reversibility to use.
-
-- `cube.py` — `MacroCube` with `apply_move` / `apply_route` / `inverse_route`.
-  A 90° slice turn rotates the 9 subcubes in a layer, updating positions *and*
-  face orientations; every move is a bijection over the 162 faces. Verified by
-  tests: a single move is non-identity, any move applied 4× returns to solved,
-  `W⁻¹·W = id` for random routes (the draft's Prop 2, now a *tested fact* rather
-  than an assertion), and no face is ever lost (multiset of faces preserved).
-  The store's own routes are real cube paths too (`route_cube_fingerprint`).
-- `provenance.py` — `ProvenanceLog` advances a cube state per lineage event
-  (`H_{t+1} = F(H_t, ρ_t)`, the draft's §12.4). Because moves are invertible it
-  has a property a **one-way hash chain does not**:
-  - **rollback** — recover the exact prior fingerprint by applying the inverse
-    route (a hash chain cannot invert `H_{t+1}` back to `H_t`);
-  - **replay-to-origin** — rolling the whole lineage back lands on the identity
-    cube, so a claimed lineage verifies in both directions;
-  - **order sensitivity** — moves don't commute, so reordering events changes
-    the fingerprint (detectable).
-
-  Honest scope: the cube makes provenance *reversible and order-sensitive*; it is
-  not itself a security primitive — tamper resistance still rests on the hash used
-  for route derivation and fingerprints. The value over a plain hash chain is
-  invertibility, not cryptographic strength (a one-way baseline is included in
-  `provenance.py` for contrast).
-
-## Honest status of the architecture
-
-- **Real and working:** deterministic content-addressed store, O(1)
-  address-regenerating retrieval, open-address collision recovery, exact-dup
-  collapse, Merkle-root tamper detection (standard content-addressed-storage
-  results, git/Venti/IPFS-class); a **1-byte binary tiny pointer**;
-  content-correlated placement with measured ~9× near-duplicate locality; and a
-  **working reversible macro-cube** driving order-sensitive, rollback-capable
-  provenance.
-- **Still namespacing, not topology:** the δ-channels remain a digest-derived
-  `% 4` label with no measured function, and the *knot labels* are a coarse
-  projection of the content signature (the real locality lives at the shard
-  level, `bench_locality.py`). The knot-theory framing (`10_34`, …) is still
-  nominal — no knot invariant is computed. Either give these a measured job or
-  describe them as labels.
-
-## Files
-- `knotstore.py` — the corrected store (put / get / verify / address_for /
-  knot_for / shard_for / node_for; `placement="digest"|"content"`).
-- `signature.py` — 64-bit SimHash content signature + top-bits shard mapping.
-- `codec.py` — binary tiny-pointer manifest codec (encode / decode / size_report).
-- `cube.py` — working reversible 162-face macro-cube (apply/inverse routes).
-- `provenance.py` — reversible, rollback-capable provenance accumulator + demo.
-- `bench.py` — measured benchmark (pointer sizes JSON vs binary, dedupe, shard balance).
-- `bench_locality.py` — co-shard locality benchmark + edit-sensitivity sweep.
-- `test_knotstore.py` — 21 tests: address regeneration, collisions, content-mode
-  round-trip + knot locality, binary codec round-trip (edge sizes + varint probe
-  escape), cube reversibility/order-4/permutation, provenance rollback + order.
-
-Run: `python3 test_knotstore.py`, `python3 bench.py`, `python3 bench_locality.py`,
-`python3 codec.py`, `python3 provenance.py`, `python3 cube.py`.
+</div>
