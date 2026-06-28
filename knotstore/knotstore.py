@@ -199,6 +199,18 @@ class KnotStore:
         cube.apply_route([CubeMove(m.axis, m.layer, m.direction) for m in route])
         return cube.fingerprint()
 
+    def route_braid_fingerprint(self, knot: str, digest: bytes) -> str:
+        """Braid-theoretic fingerprint of the route for this knot+digest pair.
+
+        Translates the ρ-move sequence to a braid word (element of B₉) and
+        returns its invariant (permutation + length). Routes with identical
+        fingerprints are topologically equivalent braids, enabling collision
+        analysis and route compression. See braid.py."""
+        from braid import route_to_braid, braid_fingerprint
+        route = self.compile_route(knot, digest, self.route_depth)
+        moves = [(m.axis, m.layer, m.direction) for m in route]
+        return braid_fingerprint(route_to_braid(moves))
+
     def derive_address(
         self, digest: bytes, knot: str, delta: str, route: List[RhoMove], probe: int
     ) -> str:

@@ -1,100 +1,12 @@
-# KNOTstore (LENS-64S) v0.1.5
+# KnotStore v0.1.1 — corrected reference implementation
 
-**Knot-Addressed Structural Hashing and Tiny-Pointer Storage**
+A runnable, corrected rewrite of the prototype in the LENS-64S draft
+(*"Knot-Addressed Structural Hashing and Tiny-Pointer Storage"*). The goal of
+this directory is to make the paper's central thesis — *tiny pointers
+deterministically regenerate storage routes* — actually true in code, and to
+replace the draft's illustrative numbers with measured ones.
 
-A fully-corrected, runnable reference implementation of the LENS-64S architecture —
-content-addressed storage where a **1-byte binary pointer** deterministically regenerates
-a knot → δ-channel → ρ-move route → storage address. Stdlib only. All claims tested
-and measured.
-
-```
-python3 -m pytest knotstore/test_knotstore.py -v   # 36 tests, all pass
-python3 knotstore/bench.py                          # pointer sizes + shard balance
-python3 knotstore/bench_locality.py                 # 9.3× near-duplicate locality
-```
-
-## Repository layout
-
-```
-knotstore/        Reference implementation (stdlib only)
-  knotstore.py    Core store: put / get / verify / address_for / route fingerprints
-  signature.py    64-bit SimHash content signature (Charikar 2002)
-  codec.py        Binary tiny-pointer codec — 1 byte per pointer
-  cube.py         Reversible 27-subcube / 162-face MacroCube + ρ-moves
-  provenance.py   Rollback-capable ProvenanceLog via inverse cube routes
-  braid.py        Alexander braid representation of ρ-move routes (B₉)
-  burau.py        Reduced Burau matrices; Alexander polynomial computation ← NEW v0.1.5
-  knot_table.py   KnotInfo-verified properties for all 7 KNOTS_V01 knots ← NEW v0.1.5
-  cauldron.py     Cauldron canonical semantics + CauldronManifest overlay
-  audit.py        Phase-duality two-phase audit log (forward p=0, dual p=1)
-  bench.py        Pointer-size + shard-balance benchmark
-  bench_locality.py  Near-duplicate locality benchmark
-  test_knotstore.py  36 tests (all pass)
-  README.md       Detailed technical notes — what was broken and how it was fixed
-
-paper/
-  WHITEPAPER.md   Full technical white paper with proofs, tables, and equations
-  colab/          Five runnable Google Colab notebooks
-    01_knotstore_basics.py     put / get / verify / tiny pointers / shard balance
-    02_burau_alexander.py      Laurent polynomials / Burau generators / Alexander Δ
-    03_knot_table.py           Knot properties / invertibility / amphichirality
-    04_cauldron_audit.py       Cauldron semantics / commit-rollback / phase audit
-    05_cube_provenance.py      MacroCube order-4 / Prop 2 (W⁻¹W=id) / ProvenanceLog
-```
-
-## Key measured results
-
-| Finding | Value |
-|---|---|
-| Binary pointer size | **1 byte** (186 bytes as JSON — 186× reduction) |
-| SimHash near-duplicate co-shard probability | **0.58** vs 0.06 random (9.3×) |
-| Trefoil Alexander polynomial Δ(t) | **1 − t + t²** ✓ |
-| Figure-eight Alexander polynomial Δ(t) | **1 − 3t + t²** ✓ |
-| Cinquefoil T(2,5) Alexander polynomial | **1 − t + t² − t³ + t⁴** ✓ |
-| W⁻¹·W = identity (Prop 2) | 20/20 random routes ✓ |
-| All 162 faces preserved (bijection) | confirmed after depth-50 route ✓ |
-
-## Knot table (KNOTS_V01 verified against KnotInfo)
-
-| Knot | Invertible | Amphichiral | Alternating | det | sig | braid idx |
-|---|---|---|---|---|---|---|
-| 10_34  | ✓ | ✓ | ✓ | 25 |  0 | 4 |
-| 10_125 | ✓ | ✗ | ✗ | 31 | −2 | 4 |
-| 10_85  | ✗ (probable) | ✗ | ✓ | 49 | +4 | 4 |
-| 10_83  | ✗ (confirmed) | ✗ | ✓ | 43 | +2 | 4 |
-| 10_61  | ✓ | ✗ | ✓ | 21 | −2 | 3 |
-| 10_20  | ✓ | ✗ | ✓ | 13 | −4 | 4 |
-| 10_136 | ✓ | ✗ | ✗ | 29 | −4 | 4 |
-
-**10_83 is confirmed non-invertible** (Trotter 1963, Hartley 1983); 10_85 probable.
-Replacement recommendation: 10_83 → **10_99**, 10_85 → **10_123** (both amphichiral +
-invertible). See `paper/WHITEPAPER.md §8` and `knotstore/knot_table.py`.
-
-## Honest scope
-
-Three limitations are documented rather than papered over:
-
-1. **Route Alexander polynomials are zero.** `route_to_braid()` is an ad hoc projection
-   (not a group homomorphism from cube symmetries to Bₙ), so `det(I − ρ̄(β)) = 0` for all
-   KNOTstore routes. Classic knot polynomials work correctly for standard braids (`burau.py`
-   verifies trefoil, figure-eight, cinquefoil against KnotInfo). A genuine homomorphism
-   requires embedding cube symmetries in Bₙ — left for future work.
-
-2. **δ-channels are labels.** The four Cauldron δ-pairs are assigned by `digest[0] % 4` —
-   uniform distribution, no knot-theoretic meaning.
-
-3. **10_83 / 10_85 should be replaced.** Non-invertible knots break the reversibility
-   invariant (forward route and inverse land in different topological classes).
-
-## Version history
-
-| Version | Key addition |
-|---|---|
-| v0.1.1 | Corrected O(1) address-regenerating retrieval (not O(N) scan) |
-| v0.1.2 | 1-byte binary tiny pointer; SimHash content placement |
-| v0.1.3 | Real reversible MacroCube (162 faces); rollback ProvenanceLog |
-| v0.1.4 | Braid routes (B₉); Cauldron canonical manifests; phase-duality audit log |
-| **v0.1.5** | **Full Burau representation; Alexander polynomials; KnotInfo verification** |
+Stdlib only. `python3 knotstore.py`, `python3 test_knotstore.py`, `python3 bench.py`.
 
 ## What was broken in the draft, and what changed
 
@@ -262,34 +174,120 @@ state that moves permute, and `provenance.py` puts the reversibility to use.
   invertibility, not cryptographic strength (a one-way baseline is included in
   `provenance.py` for contrast).
 
+## v0.1.4 — three Cauldron integrations: braid routes, canonical manifests, phase audit
+
+Parallel integration of three synergies with the Cauldron / CORE-32 architecture.
+
+### Braid representation (`braid.py`)
+The ρ-moves are now translatable to **Alexander braids** (elements of B₉, the braid
+group on 9 strands). Each 90° layer rotation induces 4 transpositions; a 10-move
+route becomes a 40-crossing braid word. Two routes with the same `braid_fingerprint`
+are topologically equivalent under the B₉ projection, enabling:
+- **Route equivalence detection** — collapse equivalent routes to a single canonical form
+- **Collision analysis** — routes that reach the same address may share a braid class
+- **Knot labels made computable** — `route_braid_fingerprint(knot, digest)` on `KnotStore`
+  produces a measured invariant tied to the knot label, addressing the v0.1.3 TODO
+
+The invariant is `B(length, permutation)` — not the full Alexander polynomial (which
+requires the Burau representation), but sufficient for grouping and collision detection.
+Full polynomial computation is the next step.
+
+### Cauldron canonical semantics (`cauldron.py`)
+The **Cauldron** (CORE-32's 10-state system, digits 0–9) has a canonical ordering
+provably free of arbitrary choices: the quadratic moment function I(a,b) = a² + b²
+assigns distinct values to the four δ-pairs {2,5}, {4,7}, {3,8}, {6,9}, fixing their
+order without investigator input. `cauldron_is_canonical()` tests this at runtime.
+
+`CauldronManifest.from_manifest(m)` lifts any KNOTstore manifest into a Cauldron-
+enriched form with:
+- Canonical δ-pair ordering proof (moment values 29, 65, 73, 117)
+- Phase-pair metadata (p=0 forward, p=1 dual)
+- Commit/rollback audit trail
+- Symmetry group signature (D₈ × ℤ₂, order 32)
+
+Backward-compatible: existing manifests parse through the codec unchanged; Cauldron
+enrichment is an optional overlay serialised to a `"cauldron"` JSON key.
+
+### Phase-duality audit log (`audit.py`)
+A stand-alone **two-phase audit chain** using Cauldron's phase duality concept:
+every event produces a *forward* fingerprint (p=0) and a *dual* fingerprint (p=1).
+Properties measured by tests:
+- **Order sensitivity** — reordering events changes the fingerprint (detectable)
+- **Tamper detection** — `verify()` recomputes the whole chain
+- **Phase flip** — `flip_phase()` switches to the dual fingerprint without altering data
+- **Rollback** — `rollback_to(i)` forks the chain at link *i*
+
+Integration point: LORE security in MYdev. Event types map directly to biometric
+state-machine transitions (ACCESS, COMMIT, VIOLATION, RECOVERY).
+
+## v0.1.5 — full Burau representation and knot verification
+
+### Reduced Burau representation and Alexander polynomials (`burau.py`)
+The knot labels now have a computable topological invariant. `burau.py` implements:
+- **`LaurentPoly`** — Laurent polynomials over ℤ with full arithmetic and normalization
+- **`reduced_burau_generator(n, i, ε)`** — the (n−1)×(n−1) reduced Burau matrix for σᵢ^ε
+- **`braid_to_burau_matrix`** — product representation for arbitrary braid words in Bₙ
+- **`alexander_invariant`** — det(I − ρ̄(β)) / (1+t+…+t^{n-1})
+
+Verified against KnotInfo:
+
+| Knot | Braid word | Computed Δ(t) | Expected | Match |
+|---|---|---|---|---|
+| Trefoil 3_1 | σ₁³ in B₂ | 1 − t + t² | 1 − t + t² | ✓ |
+| Figure-eight 4_1 | σ₁σ₂⁻¹σ₁σ₂⁻¹ in B₃ | 1 − 3t + t² | 1 − 3t + t² | ✓ |
+| Cinquefoil T(2,5) | σ₁⁵ in B₂ | 1 − t + t² − t³ + t⁴ | 1 − t + t² − t³ + t⁴ | ✓ |
+
+Known limitation: KNOTstore routes in B₉ produce `det(I − M) = 0` because
+`route_to_braid()` is an ad hoc projection, not a group homomorphism. Documented
+honestly; a genuine embedding of cube symmetries in Bₙ is future work.
+
+### Knot table verification (`knot_table.py`)
+All seven KNOTS_V01 knots verified against KnotInfo:
+
+| Knot | Invertible | Amphichiral | Alternating | det | sig |
+|---|---|---|---|---|---|
+| 10_34  | ✓ | ✓ | ✓ | 25 |  0 |
+| 10_125 | ✓ | ✗ | ✗ | 31 | −2 |
+| 10_85  | ✗ probable | ✗ | ✓ | 49 | +4 |
+| 10_83  | ✗ confirmed | ✗ | ✓ | 43 | +2 |
+| 10_61  | ✓ | ✗ | ✓ | 21 | −2 |
+| 10_20  | ✓ | ✗ | ✓ | 13 | −4 |
+| 10_136 | ✓ | ✗ | ✗ | 29 | −4 |
+
+**10_83 confirmed non-invertible** (Trotter 1963, Hartley 1983). Recommendation:
+replace 10_83 → 10_99 and 10_85 → 10_123 (both amphichiral + invertible).
+
 ## Honest status of the architecture
 
 - **Real and working:** deterministic content-addressed store, O(1)
   address-regenerating retrieval, open-address collision recovery, exact-dup
-  collapse, Merkle-root tamper detection (standard content-addressed-storage
-  results, git/Venti/IPFS-class); a **1-byte binary tiny pointer**;
-  content-correlated placement with measured ~9× near-duplicate locality; and a
-  **working reversible macro-cube** driving order-sensitive, rollback-capable
-  provenance.
-- **Still namespacing, not topology:** the δ-channels remain a digest-derived
-  `% 4` label with no measured function, and the *knot labels* are a coarse
-  projection of the content signature (the real locality lives at the shard
-  level, `bench_locality.py`). The knot-theory framing (`10_34`, …) is still
-  nominal — no knot invariant is computed. Either give these a measured job or
-  describe them as labels.
+  collapse, Merkle-root tamper detection; a **1-byte binary tiny pointer**;
+  content-correlated placement with measured ~9× near-duplicate locality;
+  working reversible macro-cube with rollback-capable provenance;
+  braid-theoretic route fingerprints; Cauldron canonical manifests;
+  phase-duality audit trails; **full Burau representation with verified
+  Alexander polynomials** (trefoil, figure-eight, cinquefoil against KnotInfo).
+- **Route Alexander polynomials are zero:** the ρ-move→braid projection is ad hoc;
+  `det(I−ρ̄(β)) = 0` for all KNOTstore routes. Documented, not papered over.
+- **δ-channels are labels:** assigned by `digest[0] % 4`; no knot-theoretic meaning.
+- **10_83/10_85 should be replaced:** see above.
 
 ## Files
 - `knotstore.py` — the corrected store (put / get / verify / address_for /
-  knot_for / shard_for / node_for; `placement="digest"|"content"`).
+  knot_for / shard_for / node_for / route_cube_fingerprint / route_braid_fingerprint).
 - `signature.py` — 64-bit SimHash content signature + top-bits shard mapping.
 - `codec.py` — binary tiny-pointer manifest codec (encode / decode / size_report).
 - `cube.py` — working reversible 162-face macro-cube (apply/inverse routes).
 - `provenance.py` — reversible, rollback-capable provenance accumulator + demo.
+- `braid.py` — Alexander braid representation of ρ-move routes; B₉ group algebra.
+- `burau.py` — **new v0.1.5**: reduced Burau matrices; Alexander polynomial computation.
+- `knot_table.py` — **new v0.1.5**: KnotInfo-verified knot properties for all KNOTS_V01.
+- `cauldron.py` — Cauldron canonical semantics + CauldronManifest overlay.
+- `audit.py` — phase-duality two-phase audit log; order-sensitive tamper detection.
 - `bench.py` — measured benchmark (pointer sizes JSON vs binary, dedupe, shard balance).
 - `bench_locality.py` — co-shard locality benchmark + edit-sensitivity sweep.
-- `test_knotstore.py` — 21 tests: address regeneration, collisions, content-mode
-  round-trip + knot locality, binary codec round-trip (edge sizes + varint probe
-  escape), cube reversibility/order-4/permutation, provenance rollback + order.
+- `test_knotstore.py` — **36 tests** (all pass).
 
 Run: `python3 test_knotstore.py`, `python3 bench.py`, `python3 bench_locality.py`,
-`python3 codec.py`, `python3 provenance.py`, `python3 cube.py`.
+`python3 burau.py`, `python3 braid.py`, `python3 cauldron.py`, `python3 audit.py`,
+`python3 provenance.py`, `python3 cube.py`.

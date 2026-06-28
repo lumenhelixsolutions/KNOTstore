@@ -237,6 +237,170 @@ def test_store_routes_are_reversible_cube_paths():
     assert cube.is_identity()
 
 
+# ---------------------------------------------------------------------------
+# v0.1.4 — braid representation, Cauldron canonical semantics, audit log
+# ---------------------------------------------------------------------------
+
+from braid import route_to_braid, braid_fingerprint, BraidWord
+from cauldron import CauldronSemantics, CauldronManifest, DELTA_PAIRS, quadratic_moment, cauldron_is_canonical
+from audit import AuditLog, AuditEvent
+from burau import (
+    LaurentPoly, reduced_burau_generator, braid_to_burau_matrix,
+    alexander_invariant, alexander_poly_from_braid,
+)
+from knot_table import KNOT_RECORDS, get_knot, non_invertible_knots, KNOT_BY_NAME
+
+
+def test_braid_fingerprint_is_deterministic():
+    """Same knot+digest always produces the same braid fingerprint."""
+    ks = KnotStore()
+    digest = sha256(b"braid test").digest()
+    knot = ks.select_knot(digest)
+    fp1 = ks.route_braid_fingerprint(knot, digest)
+    fp2 = ks.route_braid_fingerprint(knot, digest)
+    assert fp1 == fp2
+
+
+def test_braid_fingerprint_is_non_trivial():
+    """A 10-move route produces a non-trivial (non-identity) braid."""
+    ks = KnotStore()
+    digest = sha256(b"non-trivial").digest()
+    knot = ks.select_knot(digest)
+    fp = ks.route_braid_fingerprint(knot, digest)
+    # Trivial braid would be B(0, (0,1,2,...,8)); depth=10 with 4 crossings/move = 40 crossings
+    assert fp.startswith("B(40,")
+
+
+def test_braid_inverse_is_identity_permutation():
+    """Composing a route braid with its inverse yields the identity permutation."""
+    ks = KnotStore()
+    digest = sha256(b"inverse test").digest()
+    knot = ks.select_knot(digest)
+    route = ks.compile_route(knot, digest, ks.route_depth)
+    moves = [(m.axis, m.layer, m.direction) for m in route]
+    braid = route_to_braid(moves)
+    combined = braid.extend(braid.inverse())
+    assert combined.trace_strands() == list(range(9))
+
+
+def test_cauldron_canonical_ordering():
+    """The quadratic moment function gives a strict total order on δ-pairs (no ties)."""
+    assert cauldron_is_canonical()
+    moments = [quadratic_moment(a, b) for a, b in DELTA_PAIRS]
+    assert moments == sorted(moments), "δ-pairs must be in ascending moment order"
+    assert len(set(moments)) == len(moments), "all moment values must be distinct"
+
+
+def test_cauldron_manifest_lift_and_roundtrip():
+    """A KNOTstore manifest lifts to a Cauldron manifest and round-trips through JSON."""
+    ks = KnotStore(chunk_size=64)
+    m = ks.put(os.urandom(64 * 5), "cauldron_test.bin")
+    cm = CauldronManifest.from_manifest(m)
+    assert cm.phase == 0
+    cm.commit()
+    fp = cm.current_fingerprint()
+    assert fp != "origin"
+    rolled = cm.rollback()
+    assert rolled == fp
+    assert cm.phase == 1  # dual phase after rollback
+    assert cm.current_fingerprint() == "origin"
+
+
+def test_audit_chain_creates_and_verifies():
+    """A three-event audit log creates a valid, verifiable chain."""
+    log = AuditLog()
+    for eid, etype in [("e1", "ACCESS"), ("e2", "COMMIT"), ("e3", "ACCESS")]:
+        log.add(AuditEvent(event_id=eid, event_type=etype, actor="user", data="{}"))
+    assert log.verify()
+    assert log.fingerprint() != sha256(b"cauldron-origin").hexdigest()
+
+
+def test_audit_chain_is_order_sensitive():
+    """Adding events in a different order produces a different fingerprint."""
+    log1 = AuditLog()
+    log2 = AuditLog()
+    events = [
+        AuditEvent(event_id="e1", event_type="ACCESS", actor="u", data="{}"),
+        AuditEvent(event_id="e2", event_type="COMMIT", actor="u", data="{}"),
+    ]
+    log1.add(events[0]); log1.add(events[1])
+    log2.add(events[1]); log2.add(events[0])
+    assert log1.fingerprint() != log2.fingerprint()
+    assert log1.reorder_detected(log2)
+
+
+def test_audit_phase_flip_changes_fingerprint():
+    """Flipping to the dual phase produces a different fingerprint."""
+    log = AuditLog()
+    log.add(AuditEvent(event_id="e1", event_type="ACCESS", actor="u", data="{}"))
+    fp_forward = log.fingerprint()
+    log.flip_phase()
+    fp_dual = log.fingerprint()
+    assert fp_forward != fp_dual
+
+
+# ---------------------------------------------------------------------------
+# v0.1.5 — full Burau representation and knot table
+# ---------------------------------------------------------------------------
+
+
+def test_burau_braid_relation():
+    """Reduced Burau generators satisfy σ₁σ₂σ₁ = σ₂σ₁σ₂ (fundamental braid relation)."""
+    s1 = reduced_burau_generator(3, 0, 1)
+    s2 = reduced_burau_generator(3, 1, 1)
+    assert (s1 * s2) * s1 == (s2 * s1) * s2, "braid relation must hold in Burau rep"
+
+
+def test_burau_generator_inverse():
+    """σᵢ · σᵢ⁻¹ = I in the reduced Burau representation."""
+    from burau import LaurentMatrix
+    for n in (2, 3, 4):
+        for k in range(n - 1):
+            gen = reduced_burau_generator(n, k, 1)
+            gen_inv = reduced_burau_generator(n, k, -1)
+            assert gen * gen_inv == LaurentMatrix.identity(n - 1), \
+                f"σ_{k+1}·σ_{k+1}⁻¹ ≠ I for n={n}"
+
+
+def test_alexander_poly_trefoil():
+    """Trefoil (σ₁³ in B₂) has Alexander polynomial 1 − t + t²."""
+    from braid import BraidCrossing
+    crossings = [BraidCrossing(0, 1)] * 3
+    poly = alexander_invariant(crossings, n_strands=2)
+    assert poly == LaurentPoly({0: 1, 1: -1, 2: 1}), f"got {poly}"
+
+
+def test_alexander_poly_figure_eight():
+    """Figure-eight (σ₁σ₂⁻¹σ₁σ₂⁻¹ in B₃) has Alexander polynomial 1 − 3t + t²."""
+    from braid import BraidCrossing
+    crossings = [BraidCrossing(0, 1), BraidCrossing(1, -1),
+                 BraidCrossing(0, 1), BraidCrossing(1, -1)]
+    poly = alexander_invariant(crossings, n_strands=3)
+    assert poly.normalize() == LaurentPoly({0: 1, 1: -3, 2: 1}), f"got {poly}"
+
+
+def test_knot_table_seven_entries():
+    """KNOT_RECORDS contains exactly the seven KNOTS_V01 knots."""
+    from knotstore import KNOTS_V01
+    assert len(KNOT_RECORDS) == len(KNOTS_V01)
+    for name in KNOTS_V01:
+        assert name in KNOT_BY_NAME, f"{name} missing from knot table"
+
+
+def test_knot_table_invertibility():
+    """10_83 is confirmed non-invertible; 10_34 is amphichiral (hence invertible)."""
+    assert not get_knot("10_83").invertible, "10_83 should be non-invertible"
+    assert get_knot("10_34").amphichiral, "10_34 should be amphichiral"
+    bad = non_invertible_knots()
+    assert any(k.name == "10_83" for k in bad)
+
+
+def test_knot_table_non_alternating():
+    """10_125 and 10_136 are non-alternating."""
+    assert not get_knot("10_125").alternating
+    assert not get_knot("10_136").alternating
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
