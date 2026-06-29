@@ -6,7 +6,7 @@
 
 **Knot-Addressed Structural Hashing and Tiny-Pointer Storage** · `v0.1.5`
 
-[![tests](https://img.shields.io/badge/tests-36%20pass-2440E6?style=flat-square&logo=pytest&logoColor=white)](knotstore/test_knotstore.py)
+[![tests](https://github.com/lumenhelixsolutions/KNOTstore/actions/workflows/tests.yml/badge.svg)](https://github.com/lumenhelixsolutions/KNOTstore/actions/workflows/tests.yml)
 [![pointer](https://img.shields.io/badge/pointer%20size-1%20byte-11131A?style=flat-square)](knotstore/codec.py)
 [![locality](https://img.shields.io/badge/SimHash%20locality-9.3×-2440E6?style=flat-square)](knotstore/bench_locality.py)
 [![deps](https://img.shields.io/badge/dependencies-zero-5B6170?style=flat-square)](knotstore/)
