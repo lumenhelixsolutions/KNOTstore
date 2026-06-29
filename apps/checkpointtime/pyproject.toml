@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "checkpointtime"
+version = "0.1.0"
+description = "Reversible, deduplicated checkpoint store for long-running jobs."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "CheckpointTime" }]
+keywords = ["checkpoint", "dedup", "snapshot", "training", "agents", "rewind"]
+dependencies = []
+
+[project.scripts]
+checkpointtime = "checkpointtime.cli:main"
+
+[tool.setuptools]
+packages = ["checkpointtime"]

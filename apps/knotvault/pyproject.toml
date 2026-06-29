@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knotvault"
+version = "0.1.0"
+description = "A tamper-evident, deduplicating file/folder archiver — zip plus a cryptographic integrity receipt."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "KNOTstore" }]
+keywords = ["archive", "merkle", "integrity", "dedup", "content-addressed", "tamper-evident"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: System :: Archiving",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = []
+
+[project.scripts]
+knotvault = "knotvault.cli:main"
+
+[tool.setuptools]
+packages = ["knotvault"]

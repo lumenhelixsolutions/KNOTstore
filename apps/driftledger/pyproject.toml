@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "driftledger"
+version = "0.1.0"
+description = "Tamper-evident, time-travel memory for AI agents."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "DriftLedger" }]
+keywords = ["ai", "agents", "memory", "provenance", "audit", "tamper-evident", "time-travel"]
+dependencies = []
+
+[project.scripts]
+driftledger = "driftledger.cli:main"
+
+[tool.setuptools]
+packages = ["driftledger"]

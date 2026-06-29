@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Local stores created by the apps' default runs
+.knotvault/
+.prefixforge/
+.driftledger/
+.checkpointtime/

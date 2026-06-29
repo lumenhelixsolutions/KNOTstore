@@ -194,6 +194,24 @@ The digest-derived knot/δ coordinate provides essentially no locality. SimHash 
 
 ---
 
+## Applications
+
+Four downloadable, plug-n-play tools built on the engine — each a self-contained
+package with a zero-config `demo`, CLI, and tests. See [`apps/`](apps/).
+
+| App | What it does | Demo result |
+|---|---|---|
+| [KnotVault](apps/knotvault/) | Tamper-evident deduplicating archiver | ~57% dedup · corruption caught |
+| [PrefixForge](apps/prefixforge/) | LLM prefix cache that hits on *near*-duplicates | +22.5 pts hit-rate vs exact-only |
+| [DriftLedger](apps/driftledger/) | Time-travel + tamper-evident agent memory | exact rollback · tamper caught |
+| [CheckpointTime](apps/checkpointtime/) | Reversible, deduped checkpoints for long runs | ~6× space saving · exact rewind |
+
+```bash
+PYTHONPATH=apps/knotvault python -m knotvault demo   # try any of the four
+```
+
+---
+
 ## Version history
 
 | Version | Addition |

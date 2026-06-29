@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prefixforge"
+version = "0.1.0"
+description = "Content-addressed LLM prompt/prefix cache with near-duplicate locality."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "PrefixForge" }]
+keywords = ["llm", "cache", "prompt", "simhash", "near-duplicate", "tokens"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+prefixforge = "prefixforge.cli:main"
+
+[tool.setuptools]
+packages = ["prefixforge"]
