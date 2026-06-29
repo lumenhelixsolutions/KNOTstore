@@ -10,15 +10,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:     #FAFAF7;
-      --ink:    #11131A;
-      --muted:  #5B6170;
-      --accent: #2440E6;
-      --line:   #DDDBD2;
-      --green:  #1A7A4A;
-      --amber:  #B45309;
-      --red:    #C0392B;
-      --surface:#F2F1ED;
+      --bg:     #1E2129;
+      --ink:    #ECEDF1;
+      --muted:  #A2A7B4;
+      --accent: #5571FF;
+      --line:   #363B49;
+      --green:  #4ADE80;
+      --amber:  #FBBF24;
+      --red:    #F87171;
+      --surface:#272B36;
+      --panel:  #14161D;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -30,7 +31,7 @@
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     section { padding: 80px 0; border-top: 1px solid var(--line); }
     section:first-of-type { border-top: none; }
-    nav { position: sticky; top: 0; z-index: 100; background: rgba(250,250,247,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 0; }
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(30,33,41,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 0; }
     nav .inner { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     .nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem; color: var(--ink); letter-spacing: -0.02em; }
     .nav-links { display: flex; gap: 28px; list-style: none; }
@@ -46,17 +47,17 @@
     .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
     .badge .dot.green { background: var(--green); }
     .btn { display: inline-block; padding: 10px 22px; border-radius: 5px; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.9375rem; cursor: pointer; transition: opacity 0.15s; }
-    .btn-primary { background: var(--ink); color: var(--bg); }
+    .btn-primary { background: var(--accent); color: #fff; }
     .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
     .btn:hover { opacity: 0.8; text-decoration: none; }
     .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
     .section-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
     .section-title { font-size: clamp(1.5rem, 3vw, 2.25rem); letter-spacing: -0.025em; margin-bottom: 12px; }
     .section-sub { color: var(--muted); max-width: 580px; margin-bottom: 48px; }
-    .arch-diagram { background: var(--ink); border-radius: 8px; padding: 40px 32px; overflow-x: auto; }
+    .arch-diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 40px 32px; overflow-x: auto; }
     .arch-flow { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 0; }
     .arch-node { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 110px; }
-    .arch-box { background: #1E2030; border: 1px solid #2440E6; border-radius: 6px; padding: 12px 16px; width: 110px; }
+    .arch-box { background: #1E2233; border: 1px solid var(--accent); border-radius: 6px; padding: 12px 16px; width: 110px; }
     .arch-box-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.8rem; font-weight: 700; color: #FAFAF7; margin-bottom: 4px; }
     .arch-box-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: #6B7280; }
     .arch-arrow { color: #2440E6; font-size: 1.25rem; padding: 0 6px; flex-shrink: 0; align-self: center; margin-top: -16px; }
@@ -77,7 +78,7 @@
     .bar-fill span { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 500; color: white; white-space: nowrap; }
     .bar-fill.accent { background: var(--accent); }
     .bar-fill.muted  { background: var(--muted); }
-    .bar-fill.line   { background: #BBBAB2; }
+    .bar-fill.line   { background: #5A6072; }
     .codec-diagram { display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; align-items: start; }
     .codec-box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 24px; }
     .codec-box h4 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
@@ -108,15 +109,15 @@
     .timeline-desc { font-size: 0.875rem; color: var(--muted); }
     .scope-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
     .scope-card { border-radius: 8px; padding: 24px; border: 1px solid; }
-    .scope-card.real { background: #F0FDF4; border-color: #BBF7D0; }
-    .scope-card.limit { background: #FFFBEB; border-color: #FDE68A; }
+    .scope-card.real { background: #15241B; border-color: #1F3D2C; }
+    .scope-card.limit { background: #241F12; border-color: #3D3420; }
     .scope-card h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
     .scope-card.real h4 { color: var(--green); }
     .scope-card.limit h4 { color: var(--amber); }
     .scope-card ul { list-style: none; padding: 0; }
     .scope-card ul li { font-size: 0.875rem; padding: 5px 0 5px 16px; position: relative; color: var(--ink); }
     .scope-card ul li::before { content: '·'; position: absolute; left: 4px; color: var(--muted); }
-    .code-block { background: var(--ink); border-radius: 8px; padding: 24px 28px; overflow-x: auto; }
+    .code-block { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 24px 28px; overflow-x: auto; }
     .code-block pre { color: #E5E7EB; font-size: 0.875rem; line-height: 1.7; }
     .code-comment { color: #6B7280; }
     .code-string  { color: #86EFAC; }
@@ -155,7 +156,7 @@
 
 <section id="hero">
   <div class="container">
-    <img src="assets/logo.svg" alt="KNOTstore trefoil mark" width="96" height="96" style="margin-bottom:28px" />
+    <img src="assets/logo-mark.svg" alt="KNOTstore — trefoil in a storage cube" width="104" height="104" style="margin-bottom:28px" />
     <p class="hero-eyebrow">v0.1.5 · Stdlib only · 36 tests pass</p>
     <h1 class="hero-title">Content-addressed storage<br>routed through <em>knot theory</em></h1>
     <p class="hero-sub">A 1-byte binary pointer that deterministically regenerates a knot → δ-channel → ρ-move route → storage address. Fully corrected, fully measured.</p>
@@ -199,7 +200,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:#86EFAC"></div>Content-correlated (v0.1.2+)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#FCA5A5"></div>Deterministic — same chunk always → same address</div>
       </div>
-      <div style="margin-top:32px;padding-top:24px;border-top:1px solid #2A2D3E">
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--line)">
         <p style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#6B7280;text-align:center;margin-bottom:16px">MacroCube state machine — 27 subcubes · 162 faces · every ρ-move a bijection</p>
         <div style="display:flex;justify-content:center;align-items:center;gap:32px;flex-wrap:wrap">
           <svg width="120" height="120" viewBox="0 0 120 120">
@@ -346,8 +347,8 @@ data     = store.<span class="code-fn">get</span>(m2.pointer)          <span cla
         <tbody>
           <tr><td>10_34</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td>25</td><td>0</td><td>4</td><td><span style="color:var(--green);font-size:0.75rem;font-family:'JetBrains Mono',monospace">OK</span></td></tr>
           <tr><td>10_125</td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td>31</td><td>−2</td><td>4</td><td><span style="color:var(--green);font-size:0.75rem;font-family:'JetBrains Mono',monospace">OK</span></td></tr>
-          <tr style="background:#FFFBEB"><td>10_85</td><td><span class="warn">✗ probable</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>49</td><td>+4</td><td>4</td><td><span class="warn">→ replace with 10_123</span></td></tr>
-          <tr style="background:#FEF2F2"><td>10_83</td><td><span class="danger">✗ confirmed</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>43</td><td>+2</td><td>4</td><td><span class="danger">→ replace with 10_99</span></td></tr>
+          <tr style="background:#241F12"><td>10_85</td><td><span class="warn">✗ probable</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>49</td><td>+4</td><td>4</td><td><span class="warn">→ replace with 10_123</span></td></tr>
+          <tr style="background:#2A1518"><td>10_83</td><td><span class="danger">✗ confirmed</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>43</td><td>+2</td><td>4</td><td><span class="danger">→ replace with 10_99</span></td></tr>
           <tr><td>10_61</td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>21</td><td>−2</td><td>3</td><td><span style="color:var(--green);font-size:0.75rem;font-family:'JetBrains Mono',monospace">OK</span></td></tr>
           <tr><td>10_20</td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td>13</td><td>−4</td><td>4</td><td><span style="color:var(--green);font-size:0.75rem;font-family:'JetBrains Mono',monospace">OK</span></td></tr>
           <tr><td>10_136</td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td>29</td><td>−4</td><td>4</td><td><span style="color:var(--green);font-size:0.75rem;font-family:'JetBrains Mono',monospace">OK</span></td></tr>
@@ -363,7 +364,7 @@ data     = store.<span class="code-fn">get</span>(m2.pointer)          <span cla
           Cinquefoil T(2,5) — Δ(t) = <strong style="color:var(--ink)">1 − t + t² − t³ + t⁴</strong> ✓
         </div>
       </div>
-      <div style="padding:20px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA">
+      <div style="padding:20px;background:#2A1518;border-radius:8px;border:1px solid #4A2328">
         <p style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--red);margin-bottom:8px">KNOWN LIMITATION</p>
         <p style="font-size:0.875rem;color:var(--ink)">Route Alexander polynomials are zero. <code>route_to_braid()</code> is an ad hoc projection, not a group homomorphism from cube symmetries to Bₙ. A genuine homomorphism is left for future work.</p>
       </div>
