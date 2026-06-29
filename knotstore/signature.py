@@ -47,4 +47,4 @@ def shard_of(sig: int, num_nodes: int) -> int:
 
 
 def hamming(a: int, b: int) -> int:
-    return (a ^ b).bit_count()
+    return bin(a ^ b).count("1")  # 3.8-safe (int.bit_count is 3.10+)

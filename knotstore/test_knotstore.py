@@ -103,7 +103,7 @@ def test_content_placement_gives_knot_locality():
     import random
     from collections import Counter
     rng = random.Random(20240101)  # deterministic -> not flaky
-    base = bytearray(rng.randbytes(256))
+    base = bytearray(rng.getrandbits(8) for _ in range(256))  # 3.8-safe (no Random.randbytes)
     variants = []
     for _ in range(60):
         v = bytearray(base)
@@ -156,7 +156,7 @@ def test_codec_large_probe_escape():
     import random
     rng = random.Random(99)  # deterministic -> not flaky
     ks = KnotStore(chunk_size=16, address_bits=8)  # 256 cells, fill to 255
-    data = b"".join(rng.randbytes(16) for _ in range(255))
+    data = b"".join(bytes(rng.getrandbits(8) for _ in range(16)) for _ in range(255))
     m = ks.put(data, "deep.bin")
     assert max(p.probe for p in m.pointers) >= 31
     back = decode_manifest(encode_manifest(m))
