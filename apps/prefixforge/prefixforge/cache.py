@@ -37,6 +37,11 @@ from typing import Callable, Dict, List, Optional, Sequence
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 import knotcore  # noqa: E402
 
+from .embed import hashing_embedding, project_to_simhash64  # noqa: E402
+
+# Dimensionality of the built-in zero-dependency hashing embedding (semantic mode).
+SEMANTIC_DIM = 256
+
 # Default Hamming threshold for a "near" hit on a 64-bit signature.
 #
 # 64-bit SimHash of independent random text sits ~32 bits apart (half the bits).
@@ -101,57 +106,6 @@ def normalize(prompt):
     return _WS.sub(" ", prompt.strip().lower())
 
 
-def _project_embedding_to_simhash(vec, planes):
-    # type: (Sequence[float], List[List[float]]) -> int
-    """Sign-of-random-hyperplane-projection SimHash of an embedding vector."""
-    sig = 0
-    for b in range(64):
-        plane = planes[b]
-        dot = 0.0
-        for i in range(len(vec)):
-            dot += vec[i] * plane[i]
-        if dot > 0.0:
-            sig |= (1 << b)
-    return sig
-
-
-def _make_planes(dim, seed=1234567):
-    # type: (int, int) -> List[List[float]]
-    """Deterministic 64 x dim Gaussian-ish random hyperplanes (stdlib only).
-
-    Uses a tiny LCG + Box-Muller so results are reproducible across processes and
-    Python versions without depending on ``random`` implementation details.
-    """
-    state = seed & 0xFFFFFFFFFFFFFFFF
-    a = 6364136223846793005
-    c = 1442695040888963407
-    mask = 0xFFFFFFFFFFFFFFFF
-
-    def _next_float():
-        nonlocal state
-        state = (a * state + c) & mask
-        # top 53 bits -> [0,1)
-        return (state >> 11) / float(1 << 53)
-
-    planes = []  # type: List[List[float]]
-    for _ in range(64):
-        row = []  # type: List[float]
-        # Box-Muller in pairs.
-        i = 0
-        while i < dim:
-            u1 = _next_float()
-            u2 = _next_float()
-            if u1 < 1e-12:
-                u1 = 1e-12
-            r = math.sqrt(-2.0 * math.log(u1))
-            row.append(r * math.cos(2.0 * math.pi * u2))
-            if i + 1 < dim:
-                row.append(r * math.sin(2.0 * math.pi * u2))
-            i += 2
-        planes.append(row[:dim])
-    return planes
-
-
 class PrefixCache:
     """A persistent prompt cache with exact + near-duplicate retrieval.
 
@@ -161,9 +115,20 @@ class PrefixCache:
         Directory for on-disk state (created if missing).
     threshold : int
         Maximum SimHash Hamming distance accepted as a *near* hit.
+    mode : str
+        Signature strategy when ``embedding_fn`` is not supplied:
+
+        * ``"syntactic"`` (default) — byte SimHash over normalized text. Catches
+          whitespace/punctuation/casing/edit variants (surface locality).
+        * ``"semantic"`` — the built-in zero-dependency :func:`hashing_embedding`
+          bag-of-words vector, projected to a 64-bit SimHash. Catches reordered
+          words, added filler and shared-vocabulary paraphrases.
+
+        Ignored when ``embedding_fn`` is given (an explicit model always wins).
     embedding_fn : Optional[Callable[[str], Sequence[float]]]
         If supplied, signatures are derived from this embedding via random
-        hyperplane projection (semantic locality) instead of byte-SimHash.
+        hyperplane projection (semantic locality) instead of byte-SimHash. This
+        is the hook for a real embedding model: ``embedding_fn=model.encode``.
     embedding_dim : Optional[int]
         Embedding dimensionality. Inferred from the first embedding if omitted.
     persist : bool
@@ -173,16 +138,25 @@ class PrefixCache:
     INDEX_NAME = "index.json"
 
     def __init__(self, root="./.prefixforge", threshold=DEFAULT_THRESHOLD,
-                 embedding_fn=None, embedding_dim=None, persist=True):
-        # type: (str, int, Optional[EmbeddingFn], Optional[int], bool) -> None
+                 mode="syntactic", embedding_fn=None, embedding_dim=None,
+                 persist=True):
+        # type: (str, int, str, Optional[EmbeddingFn], Optional[int], bool) -> None
         if threshold < 0 or threshold > 64:
             raise ValueError("threshold must be in 0..64")
+        if mode not in ("syntactic", "semantic"):
+            raise ValueError("mode must be 'syntactic' or 'semantic'")
         self.root = os.path.abspath(root)
         self.threshold = threshold
+        self.mode = mode
+        # An explicit embedding_fn always takes precedence; "semantic" mode wires
+        # the built-in zero-dependency hashing embedding when no model is given.
+        if embedding_fn is None and mode == "semantic":
+            embedding_fn = lambda text: hashing_embedding(text, dim=SEMANTIC_DIM)
+            if embedding_dim is None:
+                embedding_dim = SEMANTIC_DIM
         self.embedding_fn = embedding_fn
         self.embedding_dim = embedding_dim
         self.persist = persist
-        self._planes = None  # type: Optional[List[List[float]]]
 
         # key (digest) -> {"sig": int, "tokens": int, "prompt": str, "addr": str}
         self._index = {}  # type: Dict[str, dict]
@@ -208,9 +182,7 @@ class PrefixCache:
         if len(vec) != self.embedding_dim:
             raise ValueError("embedding dim changed: expected %d, got %d"
                              % (self.embedding_dim, len(vec)))
-        if self._planes is None:
-            self._planes = _make_planes(self.embedding_dim)
-        return _project_embedding_to_simhash(vec, self._planes)
+        return project_to_simhash64(vec)
 
     @staticmethod
     def _digest(normalized):

@@ -21,5 +21,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest (the library itself is stdlib-only)
         run: python -m pip install --upgrade pip pytest
-      - name: Run engine + application test suites
-        run: python -m pytest knotstore/test_knotstore.py apps -v
+      - name: Run engine + application + bench test suites
+        run: python -m pytest knotstore/test_knotstore.py test_knotcore.py apps bench -v
+      - name: Packaging smoke test (each console script imports + responds to --help)
+        run: |
+          set -e
+          for app in knotvault prefixforge driftledger checkpointtime knot; do
+            echo "::group::$app --help"
+            PYTHONPATH="apps/$app:$PWD" python -m "$app" --help > /dev/null
+            echo "ok: $app"
+            echo "::endgroup::"
+          done

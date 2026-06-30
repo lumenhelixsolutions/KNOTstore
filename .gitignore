@@ -6,3 +6,8 @@ __pycache__/
 .prefixforge/
 .driftledger/
 .checkpointtime/
+
+# pytest / tooling
+.pytest_cache/
+bench/results.json
+bench/RESULTS.md

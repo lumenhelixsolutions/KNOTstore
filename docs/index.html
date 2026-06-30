@@ -123,6 +123,20 @@
     .code-string  { color: #86EFAC; }
     .code-kw      { color: #93C5FD; }
     .code-fn      { color: #FCA5A5; }
+    .apps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .app-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 24px; transition: border-color 0.15s; }
+    .app-card:hover { border-color: var(--accent); }
+    .app-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    .app-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--ink); letter-spacing: -0.02em; }
+    .app-metric { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--accent); letter-spacing: -0.02em; white-space: nowrap; flex-shrink: 0; }
+    .app-pitch { font-size: 0.875rem; color: var(--muted); margin-bottom: 16px; }
+    .app-card ul { list-style: none; padding: 0; margin: 0 0 18px; }
+    .app-card ul li { font-size: 0.8125rem; color: var(--ink); padding: 4px 0 4px 16px; position: relative; }
+    .app-card ul li::before { content: '·'; position: absolute; left: 4px; color: var(--accent); }
+    .app-chip { display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; overflow-x: auto; white-space: nowrap; }
+    .app-chip .prompt { color: var(--accent); }
+    .app-demo { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #9CA3AF; margin-bottom: 16px; }
+    .app-source { margin-top: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
     footer { padding: 48px 0; border-top: 1px solid var(--line); }
     .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 24px; }
     .footer-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9375rem; }
@@ -150,6 +164,7 @@
       <li><a href="#knots">Knots</a></li>
       <li><a href="#timeline">Timeline</a></li>
       <li><a href="#scope">Scope</a></li>
+      <li><a href="#applications">Applications</a></li>
     </ul>
   </div>
 </nav>
@@ -420,6 +435,81 @@ data     = store.<span class="code-fn">get</span>(m2.pointer)          <span cla
           <li>MacroCube is reversible but not a security primitive</li>
         </ul>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="applications">
+  <div class="container">
+    <p class="section-label">Built on the engine</p>
+    <h2 class="section-title">Four products, one engine.</h2>
+    <p class="section-sub">Each app is a thin, stdlib-only tool over the same KNOTstore core — content addressing, dedup, and reversible provenance — packaged for a real job. Install any one with pipx.</p>
+    <div class="apps-grid">
+
+      <div class="app-card">
+        <div class="app-card-head">
+          <span class="app-name">KnotVault</span>
+          <span class="app-metric">57% dedup</span>
+        </div>
+        <p class="app-pitch">Zip plus a cryptographic integrity receipt — content-addressed, deduplicated, tamper-evident.</p>
+        <ul>
+          <li>Content-addressed dedup — identical chunks stored once</li>
+          <li>Merkle tamper-evidence over files and the whole archive</li>
+          <li><code>verify</code> pinpoints the exact tampered file and chunk</li>
+        </ul>
+        <code class="app-chip"><span class="prompt">$</span> pipx install ./apps/knotvault</code>
+        <p class="app-demo">knotvault demo &nbsp;# ~57% dedup + tamper caught</p>
+        <a class="app-source" href="https://github.com/lumenhelixsolutions/KNOTstore/tree/main/apps/knotvault">View source →</a>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head">
+          <span class="app-name">PrefixForge</span>
+          <span class="app-metric">↑ hit-rate</span>
+        </div>
+        <p class="app-pitch">A content-addressed LLM prompt cache that also hits on near-duplicates — turning near-misses into saved tokens.</p>
+        <ul>
+          <li>Exact tier + SimHash near tier (Hamming ≤ 8 on 64 bits)</li>
+          <li>+22.5 pt hit-rate lift, +32k tokens saved on the demo stream</li>
+          <li>Optional embedding_fn for semantic locality</li>
+        </ul>
+        <code class="app-chip"><span class="prompt">$</span> pipx install ./apps/prefixforge</code>
+        <p class="app-demo">prefixforge demo &nbsp;# 66% → 88.5% hit rate</p>
+        <a class="app-source" href="https://github.com/lumenhelixsolutions/KNOTstore/tree/main/apps/prefixforge">View source →</a>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head">
+          <span class="app-name">DriftLedger</span>
+          <span class="app-metric">instant rollback</span>
+        </div>
+        <p class="app-pitch">Tamper-evident, time-travel memory for AI agents — roll back, replay, branch, and emit a signed audit trail.</p>
+        <ul>
+          <li>Reversible provenance: rollback to the exact prior state</li>
+          <li>Order-sensitive chain — silent reordering is detectable</li>
+          <li>Merkle root + HMAC-SHA256 signed audit (SOC 2 / EU AI Act)</li>
+        </ul>
+        <code class="app-chip"><span class="prompt">$</span> pipx install ./apps/driftledger</code>
+        <p class="app-demo">driftledger demo &nbsp;# rollback 3 + tamper caught</p>
+        <a class="app-source" href="https://github.com/lumenhelixsolutions/KNOTstore/tree/main/apps/driftledger">View source →</a>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head">
+          <span class="app-name">CheckpointTime</span>
+          <span class="app-metric">6× storage saved</span>
+        </div>
+        <p class="app-pitch">A reversible, deduplicated checkpoint store for long runs — N near-identical snapshots cost ~one full copy plus the deltas.</p>
+        <ul>
+          <li>Chunk-level dedup across checkpoints (6.02× on the demo)</li>
+          <li>Rewind HEAD to any earlier checkpoint, byte-exact</li>
+          <li>Branch named alternate timelines without losing data</li>
+        </ul>
+        <code class="app-chip"><span class="prompt">$</span> pipx install ./apps/checkpointtime</code>
+        <p class="app-demo">checkpointtime demo &nbsp;# 83.4% space saved</p>
+        <a class="app-source" href="https://github.com/lumenhelixsolutions/KNOTstore/tree/main/apps/checkpointtime">View source →</a>
+      </div>
+
     </div>
   </div>
 </section>
