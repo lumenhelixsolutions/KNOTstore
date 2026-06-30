@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use KNOTstore, please cite it as below."
+title: "KNOTstore (LENS-64S): Knot-Addressed Structural Hashing and Tiny-Pointer Storage"
+abstract: >-
+  A content-addressed storage engine with O(1) address-regenerating retrieval,
+  1-byte tiny pointers, SimHash near-duplicate locality, Merkle tamper-evidence,
+  and reversible rollback provenance — plus a suite of downloadable applications
+  (KnotVault, PrefixForge, DriftLedger, CheckpointTime).
+type: software
+authors:
+  - name: "lumenhelixsolutions"
+version: "0.2.0"
+date-released: "2026-06-30"
+license: MIT
+repository-code: "https://github.com/lumenhelixsolutions/KNOTstore"
+url: "https://lumenhelixsolutions.github.io/KNOTstore/"
+keywords:
+  - content-addressed storage
+  - deduplication
+  - simhash
+  - merkle
+  - provenance
+  - LLM prefix cache

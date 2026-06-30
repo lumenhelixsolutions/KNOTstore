@@ -206,9 +206,17 @@ package with a zero-config `demo`, CLI, and tests. See [`apps/`](apps/).
 | [DriftLedger](apps/driftledger/) | Time-travel + tamper-evident agent memory | exact rollback · tamper caught |
 | [CheckpointTime](apps/checkpointtime/) | Reversible, deduped checkpoints for long runs | ~6× space saving · exact rewind |
 
+One CLI drives all four:
+
 ```bash
-PYTHONPATH=apps/knotvault python -m knotvault demo   # try any of the four
+./install.sh                 # pipx-installs the suite (knot, knotvault, …)
+knot list                    # the apps + status
+knot demo --all              # run every app's zero-config demo
+knot vault add ./folder --name backup
 ```
+
+No install? Run in place: `PYTHONPATH=apps/knot python -m knot demo --all`.
+Reproduce the headline numbers any time with `python -m bench.run` (see [`bench/`](bench/)).
 
 ---
 
@@ -220,7 +228,8 @@ PYTHONPATH=apps/knotvault python -m knotvault demo   # try any of the four
 | v0.1.2 | 1-byte binary pointer; SimHash content placement |
 | v0.1.3 | Real reversible MacroCube (162 faces); rollback ProvenanceLog |
 | v0.1.4 | Braid routes (B₉); Cauldron manifests; phase-duality audit log |
-| **v0.1.5** | **Burau matrices; Alexander polynomials; KnotInfo verification** |
+| v0.1.5 | Burau matrices; Alexander polynomials; KnotInfo verification |
+| **v0.2.0** | **Four downloadable apps + `knot` meta-CLI; benchmark suite; semantic PrefixForge** |
 
 ---
 
