@@ -54,9 +54,10 @@ All claims are backed by running code and passing tests (36 tests, stdlib only).
 12. [Unified Architecture: Integration Points](#12-unified-architecture-integration-points)
 13. [Experimental Results](#13-experimental-results)
 14. [Honest Assessment and Open Problems](#14-honest-assessment-and-open-problems)
-15. [Appendix A: Proof of Address Regeneration (Theorem 1 corrected)](#appendix-a)
-16. [Appendix B: Burau Generator Derivation](#appendix-b)
-17. [Appendix C: Cauldron Canonicality Proof](#appendix-c)
+15. [Application Suite: From Engine to Product](#15-application-suite-from-engine-to-product)
+16. [Appendix A: Proof of Address Regeneration (Theorem 1 corrected)](#appendix-a)
+17. [Appendix B: Burau Generator Derivation](#appendix-b)
+18. [Appendix C: Cauldron Canonicality Proof](#appendix-c)
 
 ---
 
@@ -1052,6 +1053,119 @@ hash. Then routes with identical Alexander polynomials deterministically map to 
 same address, enabling topology-level deduplication. This is architecturally clean
 but requires careful definition of "same Alexander polynomial" for multi-chunk
 objects.
+
+---
+
+## 15. Application Suite: From Engine to Product
+
+The corrected engine (§3–§6) exposes a small set of primitives that are
+genuinely differentiated from commodity content-addressing (Git, IPFS): **(P1)**
+O(1) address-regenerating retrieval from a 1-byte route descriptor (§3–§4),
+**(P2)** content-correlated placement via SimHash, giving near-duplicate locality
+(§5), **(P3)** Merkle-rooted tamper evidence (Appendix A), and **(P4)** an
+ordered, *reversible* provenance machine with exact rollback (§6). Sections
+7–11 (braids, Burau/Alexander, Cauldron) remain, by our own honest assessment
+(§14), namespacing rather than load-bearing primitives — so the application
+layer is built strictly on P1–P4.
+
+This section documents four downloadable, stdlib-only applications and a unifying
+CLI, each mapped to the primitive it exploits and the commodity baseline it beats.
+
+### 15.1 Design constraints
+
+All applications share one constraint set, inherited from the engine: **(i)**
+Python ≥3.8, standard library only at runtime; **(ii)** a single shared entry
+point, `knotcore`, which re-exports the engine and adds `PersistentKnotStore` —
+a write-through, disk-backed store whose deduplicated objects and compact binary
+manifests survive process restarts; **(iii)** a zero-configuration `demo`
+subcommand per app that proves the headline property end-to-end. This keeps the
+"reference implementation" character of the engine intact at the product layer:
+no service to stand up, no dependencies to resolve, every claim runnable.
+
+### 15.2 KnotVault — tamper-evident deduplicating archive (P2, P3)
+
+KnotVault archives files and directories into a content-addressed store, collapsing
+exact-duplicate chunks (P2) and emitting a Merkle root per file and per archive
+(P3). Verification recomputes every chunk address and digest from the manifest;
+any single altered byte fails verification with the offending file identified.
+Because the engine caches its backend in memory at construction, the vault
+resynchronizes from on-disk objects before verifying, so detection reflects the
+bytes a fresh process would see. Measured on a synthetic corpus with intentional
+duplication, end-to-end dedup savings are ≈40–57% with corruption reliably caught.
+Baseline delta: `zip` gives compression but no integrity proof; Git gives integrity
+but no near-duplicate-aware shard locality.
+
+### 15.3 PrefixForge — near-duplicate LLM prefix cache (P1, P2)
+
+Exact-match prompt/KV caches (vLLM, provider prompt caching) hit only on identical
+prefixes. PrefixForge additionally returns the *nearest* cached entry within a
+SimHash Hamming threshold (P2), recovering the near-misses exact caching drops.
+Two signature modes are provided: a default **syntactic** mode (text SimHash over
+a normalized prompt) and a zero-dependency **semantic** mode that builds a
+hashing bag-of-words embedding and projects it to the engine's 64-bit signature
+space via sign-of-random-hyperplane rounding (Charikar's construction, §5.2,
+applied to a feature vector rather than raw bytes). An `embedding_fn` hook accepts
+a real model for true synonym-level semantics. On a near-duplicate prompt stream,
+the near-aware cache lifts hit-rate materially above exact-only; the persisted
+values are content-addressed, so identical completions are stored once. A stdlib
+`http.server` sidecar exposes the cache over HTTP for polyglot/process-external
+use. **Honest scope:** the zero-dependency semantic mode captures lexical
+(word-set) locality — reorderings, casing, filler, light edits — but not synonym
+substitution, which requires a real embedder through the hook; this is the §5.3
+edit-sensitivity result re-expressed at the prompt level.
+
+### 15.4 DriftLedger — reversible, attestable agent memory (P3, P4)
+
+DriftLedger binds each agent memory write to the reversible provenance machine
+(P4): the event fed to the `ProvenanceLog` incorporates `sha256(state)`, so the
+cube fingerprint commits to the actual bytes, and states are stored
+content-addressed (P2) for dedup across steps. This yields exact rollback to any
+prior step, alternate-timeline branching, and full-chain verification that catches
+state-file tampering (P3). On top, a *portable attestation* exports the ordered
+chain `(step, event, state_digest, fingerprint_after)`, a Merkle root over state
+digests, and an HMAC-SHA256 signature into a standalone JSON file; `verify_audit`
+re-checks Merkle consistency, chain linkage, and signature **offline, without the
+originating store**. This is the §6.2 provenance log and §11 audit chain promoted
+to a third-party-verifiable artifact for autonomous-agent auditability. **Honest
+scope:** HMAC is a shared-secret (symmetric) signature; asymmetric public-key
+attestation would require a cryptographic dependency outside the stdlib-only build.
+
+### 15.5 CheckpointTime — reversible, deduplicated checkpoints (P1, P2, P4)
+
+CheckpointTime targets long-running jobs (training, multi-day agent runs). It
+content-addresses successive run states and chunk-level-deduplicates them (P2), so
+N slowly-mutating checkpoints cost roughly one full copy plus deltas; an ordered
+provenance lineage (P4) provides rewind and branch. Reported statistics compare
+*logical* bytes (sum of checkpoint sizes) against *physical* on-disk bytes,
+yielding the dedup ratio directly. Baseline delta: naïve checkpointing stores N
+full copies; CheckpointTime stores the shared substructure once while preserving
+exact restore and reversible navigation.
+
+### 15.6 Unified CLI, benchmarks, and reproducibility
+
+A meta-CLI, `knot`, dispatches to all four applications
+(`knot vault|forge|ledger|checkpoint`, `knot demo --all`) via subprocess, keeping
+it decoupled from each app's internals and agnostic to in-place vs. installed use.
+A separate benchmark harness (`python -m bench.run`) measures the headline metric
+of each primitive — tiny-pointer size, content-vs-digest co-shard probability,
+KnotVault dedup %, PrefixForge hit-rate lift, CheckpointTime dedup ratio, and
+DriftLedger rollback/tamper correctness — and emits machine-readable JSON plus a
+markdown table, so every number in this section is regenerable from a clean
+checkout. Continuous integration runs the engine, core, application, and benchmark
+suites plus a packaging smoke test across Python 3.8/3.10/3.12.
+
+### 15.7 What the application layer demonstrates
+
+The suite makes the §14 assessment concrete. The properties that carry real,
+measurable product value — O(1) regenerating retrieval, near-duplicate locality,
+tamper evidence, and reversible provenance — are exactly the engine layers we
+classify as *real and working*. None of the four applications depends on the
+knot-theoretic apparatus (braids, Burau, Alexander, Cauldron) for its value, which
+is consistent with the central honest finding of this paper: the locality and
+reversibility are load-bearing; the knot framing, as currently selector-driven by
+digest modulo rather than content signature, is not. Closing that gap (§14.3) — a
+content-driven knot selector — is the route by which the topological layer would
+begin to contribute to the product metrics above, rather than merely naming them.
 
 ---
 
