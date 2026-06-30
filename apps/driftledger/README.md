@@ -155,3 +155,23 @@ PASS/FAIL. It:
 ---
 
 MIT licensed. Part of the KNOTstore app suite.
+
+## Audit & attestation
+
+Export a portable, tamper-evident audit file and hand it to a third party who
+can verify it **offline** — without your ledger's private store:
+
+```bash
+echo -n "shared-secret" > key.txt
+driftledger audit export ./.driftledger --out audit.json --key-file key.txt
+driftledger audit verify audit.json --key-file key.txt      # OK / FAIL (+ findings), exit 0/1
+```
+
+The file carries the ordered chain `(step, event, state_digest, fingerprint_after)`,
+a Merkle root over the state digests, and an HMAC-SHA256 signature. `verify_audit`
+recomputes the Merkle root, checks the chain links, and validates the signature.
+Altering any field flips it to FAIL with a precise finding.
+
+**Honest limits:** HMAC is a *shared-secret* (symmetric) signature — anyone with the
+key can both sign and verify. Asymmetric (public-key) attestation would need a crypto
+dependency, which is out of scope for this stdlib-only build.

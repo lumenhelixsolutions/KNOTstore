@@ -147,3 +147,20 @@ generated deterministically (seeded), so signatures are stable across processes.
   heavy stream to show the mechanism. Your real lift depends on how repetitive
   your traffic is.
 ```
+
+## HTTP sidecar
+
+Run PrefixForge as a tiny stdlib HTTP service so any process or language can share
+the near-duplicate cache:
+
+```bash
+prefixforge serve --port 8771 --root ./.prefixforge --mode semantic
+prefixforge ping                                  # health-check
+```
+
+- `GET  /healthz` → `{"ok": true}`
+- `POST /cache` `{"prompt","value"(base64),"tokens"}` → store
+- `GET  /cache?prompt=...` → `{"kind","similarity","tokens_saved","value"(base64)}`
+
+A stdlib `PrefixClient` is included (`from prefixforge.server import PrefixClient`).
+No external dependencies — just `http.server` + `urllib`.

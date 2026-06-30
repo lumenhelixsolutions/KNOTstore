@@ -87,7 +87,36 @@ def build_parser():
     q.add_argument("--show-value", action="store_true", help="also write the blob to stdout")
     q.set_defaults(func=_cmd_query)
 
+    sv = sub.add_parser("serve", help="run the HTTP sidecar (stdlib http.server)")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8771)
+    sv.add_argument("--root", default="./.prefixforge", help="cache directory")
+    sv.add_argument("--threshold", type=int, default=8)
+    sv.add_argument("--mode", default="syntactic", choices=["syntactic", "semantic"])
+    sv.set_defaults(func=_cmd_serve)
+
+    pg = sub.add_parser("ping", help="health-check a running sidecar")
+    pg.add_argument("--url", default="http://127.0.0.1:8771")
+    pg.set_defaults(func=_cmd_ping)
+
     return p
+
+
+def _cmd_serve(args):
+    from .server import serve
+    return serve(host=args.host, port=args.port, root=args.root,
+                 threshold=args.threshold, mode=args.mode)
+
+
+def _cmd_ping(args):
+    from .server import PrefixClient
+    try:
+        ok = PrefixClient(args.url).healthz().get("ok") is True
+    except Exception as exc:
+        print("ping %s: DOWN (%s)" % (args.url, exc))
+        return 1
+    print("ping %s: %s" % (args.url, "OK" if ok else "BAD"))
+    return 0 if ok else 1
 
 
 def main(argv=None):

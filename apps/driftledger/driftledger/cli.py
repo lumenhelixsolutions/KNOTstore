@@ -67,8 +67,32 @@ def cmd_rollback(args) -> int:
     return 0
 
 
+def _read_key(path):
+    if not path:
+        return None
+    with open(path, "rb") as fh:
+        return fh.read().strip()
+
+
 def cmd_audit(args) -> int:
-    ledger = AgentLedger(args.ledger, secret_key=args.key)
+    sub = getattr(args, "audit_cmd", None)
+    if sub == "export":
+        from .audit import export_audit
+        ledger = AgentLedger(args.ledger)
+        doc = export_audit(ledger, args.out, key=_read_key(getattr(args, "key_file", None)))
+        print("wrote audit -> %s  (%d steps, signed=%s)" % (
+            args.out, doc.get("count", 0), doc.get("signed")))
+        return 0
+    if sub == "verify":
+        from .audit import verify_audit
+        res = verify_audit(args.auditfile, key=_read_key(getattr(args, "key_file", None)))
+        print("verify_audit(%s): %s" % (args.auditfile, "OK" if res.ok else "FAIL"))
+        for f in res.findings:
+            print("  - " + f)
+        return 0 if res.ok else 1
+    # default / "show": print the in-memory signed audit
+    key = _read_key(getattr(args, "key_file", None)) or getattr(args, "key", None)
+    ledger = AgentLedger(getattr(args, "ledger", DEFAULT_DIR), secret_key=key)
     print(json.dumps(ledger.audit(), indent=2, sort_keys=True))
     return 0
 
@@ -202,10 +226,23 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("ledger", nargs="?", default=DEFAULT_DIR)
     sp.set_defaults(func=cmd_rollback)
 
-    sp = sub.add_parser("audit", help="emit a signed audit trail (JSON)")
-    sp.add_argument("ledger", nargs="?", default=DEFAULT_DIR)
-    sp.add_argument("--key", default=None, help="HMAC secret key for signing")
+    sp = sub.add_parser("audit", help="emit / export / verify a signed audit trail")
     sp.set_defaults(func=cmd_audit)
+    asub = sp.add_subparsers(dest="audit_cmd")
+    ash = asub.add_parser("show", help="print the in-memory signed audit (default)")
+    ash.add_argument("ledger", nargs="?", default=DEFAULT_DIR)
+    ash.add_argument("--key", default=None, help="HMAC secret key for signing (inline)")
+    ash.add_argument("--key-file", default=None, help="file holding the HMAC key")
+    ash.set_defaults(func=cmd_audit)
+    ax = asub.add_parser("export", help="write a portable, offline-verifiable audit file")
+    ax.add_argument("ledger", nargs="?", default=DEFAULT_DIR)
+    ax.add_argument("--out", required=True, help="audit JSON output path")
+    ax.add_argument("--key-file", default=None, help="file holding the HMAC key")
+    ax.set_defaults(func=cmd_audit)
+    av = asub.add_parser("verify", help="verify a portable audit file standalone")
+    av.add_argument("auditfile", help="path to an exported audit JSON")
+    av.add_argument("--key-file", default=None, help="file holding the HMAC key")
+    av.set_defaults(func=cmd_audit)
 
     return p
 
